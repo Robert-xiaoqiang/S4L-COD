@@ -1,0 +1,8 @@
+/pretrained/
+/snapshots/
+/summary/
+/source/__pycache__/
+/codpackage/__pycache__/
+/codpackage/architecture/__pycache__/
+/codpackage/datasampler/__pycache__/
+/codpackage/trainer/__pycache__/
