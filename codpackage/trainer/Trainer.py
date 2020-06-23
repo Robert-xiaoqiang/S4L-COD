@@ -313,7 +313,7 @@ class Trainer():
                 pred = self.to_pil(pred).resize(mask.size)
                 preds.append(pred)
                 masks.append(mask)
-        self.logger.info('Start evaluation')
+        self.logger.info('Start evaluation on validating dataset')
         results = Evaluator.fast_evaluate(preds, masks)
-        self.logger.info('Finish evaluation')
+        self.logger.info('Finish evaluation on validating dataset')
         return results
