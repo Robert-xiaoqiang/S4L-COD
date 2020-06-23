@@ -1,23 +1,19 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import os
+import sys
 import logging
+from pprint import pprint
 import functools
 
 import numpy as np
-
 import torch
 import torch.nn as nn
 import torch._utils
 import torch.nn.functional as F
 
-from .sync_bn.inplace_abn.bn import InPlaceABNSync
+from .sync_batchnorm.batchnorm import SynchronizedBatchNorm2d
 
-BatchNorm2d = functools.partial(InPlaceABNSync, activation='none')
+BatchNorm2d = SynchronizedBatchNorm2d
 BN_MOMENTUM = 0.01
-logger = logging.getLogger(__name__)
 
 def conv3x3(in_planes, out_planes, stride=1):
     """3x3 convolution with padding"""
@@ -237,7 +233,8 @@ class HighResolutionModule(nn.Module):
                     y = y + F.interpolate(
                         self.fuse_layers[i][j](x[j]),
                         size=[height_output, width_output],
-                        mode='bilinear')
+                        mode='bilinear',
+                        align_corners = True)
                 else:
                     y = y + self.fuse_layers[i][j](x[j])
             x_fuse.append(self.relu(y))
@@ -316,10 +313,11 @@ class HighResolutionNet(nn.Module):
             nn.ReLU(inplace=False),
             nn.Conv2d(
                 in_channels=last_inp_channels,
-                out_channels=config.DATASET.NUM_CLASSES,
+                out_channels=1,
                 kernel_size=extra.FINAL_CONV_KERNEL,
                 stride=1,
-                padding=1 if extra.FINAL_CONV_KERNEL == 3 else 0)
+                padding=1 if extra.FINAL_CONV_KERNEL == 3 else 0),
+            nn.Sigmoid()
         )
 
     def _make_transition_layer(
@@ -405,6 +403,7 @@ class HighResolutionNet(nn.Module):
         return nn.Sequential(*modules), num_inchannels
 
     def forward(self, x):
+        ori_h, ori_w = x.shape[2], x.shape[3]
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
@@ -445,32 +444,32 @@ class HighResolutionNet(nn.Module):
 
         # Upsampling
         x0_h, x0_w = x[0].size(2), x[0].size(3)
-        x1 = F.upsample(x[1], size=(x0_h, x0_w), mode='bilinear')
-        x2 = F.upsample(x[2], size=(x0_h, x0_w), mode='bilinear')
-        x3 = F.upsample(x[3], size=(x0_h, x0_w), mode='bilinear')
+        x1 = F.interpolate(x[1], size=(x0_h, x0_w), mode='bilinear', align_corners=True)
+        x2 = F.interpolate(x[2], size=(x0_h, x0_w), mode='bilinear', align_corners=True)
+        x3 = F.interpolate(x[3], size=(x0_h, x0_w), mode='bilinear', align_corners=True)
 
         x = torch.cat([x[0], x1, x2, x3], 1)
-
         x = self.last_layer(x)
 
+        x = F.interpolate(x, size=(ori_h, ori_w), mode='bilinear', align_corners=True)
         return x
 
     def init_weights(self, pretrained='',):
-        logger.info('=> init weights from normal distribution')
+        pprint('=> init weights from normal distribution')
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.normal_(m.weight, std=0.001)
-            elif isinstance(m, InPlaceABNSync):
+            elif isinstance(m, SynchronizedBatchNorm2d):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
         if os.path.isfile(pretrained):
             pretrained_dict = torch.load(pretrained)
-            logger.info('=> loading pretrained model {}'.format(pretrained))
+            pprint('=> loading ImageNet scratch pretrained model {}'.format(pretrained))
             model_dict = self.state_dict()
             pretrained_dict = {k: v for k, v in pretrained_dict.items()
                                if k in model_dict.keys()}
-            for k, _ in pretrained_dict.items():
-                logger.info(
-                    '=> loading {} pretrained model {}'.format(k, pretrained))
             model_dict.update(pretrained_dict)
             self.load_state_dict(model_dict)
+            pprint('=> loaded ImageNet scratch pretrained model {}'.format(pretrained))
+        else:
+            pprint('=> cannot find ImageNet scratch pretrained model')

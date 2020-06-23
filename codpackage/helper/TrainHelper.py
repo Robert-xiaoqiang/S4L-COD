@@ -249,7 +249,7 @@ class LoggerPather:
         self.log_dir.mkdir(parents=True, exist_ok=True)
 
         time_str = time.strftime('%Y-%m-%d-%H-%M')
-        log_file = '{}_{}_{}.log'.format(cfg.NAME, time_str)
+        log_file = '{}_{}.log'.format(cfg.NAME, time_str)
         log_file_full_name = self.log_dir / log_file
         head = '%(asctime)-15s %(message)s'
         logging.basicConfig(filename=str(log_file_full_name),
@@ -342,3 +342,21 @@ class DeviceWrapper:
             else:
                 device = [ int(device.split(':')[1]) ]
         return device
+
+class FullModel(nn.Module):
+  """
+  Distribute the loss on multi-gpu to reduce 
+  the memory cost in the main gpu.
+  You can check the following discussion.
+  https://discuss.pytorch.org/t/dataparallel-imbalanced-memory-usage/22551/21
+  """
+  def __init__(self, model, loss):
+    super(FullModel, self).__init__()
+    self.model = model
+    self.loss = loss
+
+  def forward(self, inputs, labels):
+    outputs = self.model(inputs)
+    loss = self.loss(outputs, labels)
+    # here convert to scalar to 1-d tensor for reduce operation
+    return torch.unsqueeze(loss, 0), outputs

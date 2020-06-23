@@ -26,6 +26,10 @@ class CODDataset(torch.utils.data.Dataset):
             transforms.Normalize(self.mean, self.std)
             ])
         self.mask_transform = transforms.ToTensor()
+    
+    def __len__(self):
+        return len(self.data_list)
+
     def __getitem__(self, index):
         image_path, mask_path = self.data_list[index]
 

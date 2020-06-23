@@ -1,14 +1,14 @@
 NAME: 'w18-baseline-0'
+DEVICE: 'cuda:0,1,2,3'
+SEED: 32767
+SUMMARY_DIR: '/home/xqwang/projects/camouflaged/dev/summary'
 CUDNN:
   BENCHMARK: true
   DETERMINISTIC: false
   ENABLED: true
-DEVICE: 'cuda:0,1,2,3'
-SUMMARY_DIR: '/home/xqwang/projects/camouflaged/dev/summary'
-
 MODEL:
   NAME: HRNet
-  PRETRAINED: /home/xqwang/projects/camouflaged/dev/pretrained/hrnetv2_w18_imagenet_pretrained.pth'
+  PRETRAINED: '/home/xqwang/projects/camouflaged/dev/pretrained/hrnetv2_w18_imagenet_pretrained.pth'
   EXTRA:
     FINAL_CONV_KERNEL: 1
     STAGE1:
@@ -64,11 +64,11 @@ TRAIN:
   TRAIN_SIZE:
   - 352
   - 352
-  BATCH_SIZE: 8
-  SHUFFLE: true
-  NUM_EPOCHS: 288
-  RESUME: true
+  BATCH_SIZE: 128
   WORKERS: 4
+  SHUFFLE: true
+  NUM_EPOCHS: 700
+  RESUME: true
   LOSS_FREQ: 10
   TB_FREQ: 10
   OPTIM: 'sgd_trick'
@@ -79,10 +79,12 @@ TRAIN:
   NESTEROV: false
   REDUCTION: 'mean'
 VAL:
-  DATASET_ROOT: '/home/xqwang/projects/camouflaged/datasets/COD10K'
+  DATASET_ROOT: '/home/xqwang/projects/camouflaged/datasets/VAL'
 TEST:
-  DATASET_ROOT:
-  - '/home/xqwang/projects/camouflaged/datasets/CAMO'
-  - '/home/xqwang/projects/camouflaged/datasets/COD10K'
-  - '/home/xqwang/projects/camouflaged/datasets/CPD10K'
-  BATCH_SIZE: 4
+  DATASET_ROOTS:
+  - CAMO: '/home/xqwang/projects/camouflaged/datasets/CAMO'
+  - CHAMELEON: '/home/xqwang/projects/camouflaged/datasets/CHAMELEON'
+  - COD10K: '/home/xqwang/projects/camouflaged/datasets/COD10K'
+  - CPD1K: '/home/xqwang/projects/camouflaged/datasets/CPD1K'
+  BATCH_SIZE: 128
+  WORKERS: 8

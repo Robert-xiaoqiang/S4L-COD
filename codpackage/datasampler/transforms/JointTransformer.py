@@ -24,19 +24,17 @@ class JointRandomHorizontallyFlip(object):
                 ret[i] = arg.transpose(Image.FLIP_LEFT_RIGHT)
         return tuple(ret)
 
-
 class JointResize(object):
     def __init__(self, size):
         if isinstance(size, int):
             self.size = (size, size)
-        elif isinstance(size, tuple):
+        elif isinstance(size, (tuple, list)):
             self.size = size
         else:
-            raise RuntimeError("size参数请设置为int或者tuple")
+            raise RuntimeError("size参数请设置为int或者tuple, list")
     
     def __call__(self, *args):
         return tuple([ arg.resize(self.size) for arg in args ])
-
 
 class JointRandomRotate(object):
     def __init__(self, degree):

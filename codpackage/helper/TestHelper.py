@@ -1,42 +1,100 @@
+import torch
+from torch import nn
 import numpy as np
+from tqdm import tqdm
 from .TrainHelper import AverageMeter
 
 class Evaluator:
 
+    # evaluate without f-measure and s-measure
+    @staticmethod
+    def fast_evaluate(preds, masks):
+        assert len(preds) == len(masks), 'diff in length between prediction and map'
+        maes = AverageMeter()
+        ss = AverageMeter()
+
+        iterable = list(zip(preds, masks))
+        tqdm_iterable = tqdm(iterable, total=len(iterable), leave=False, desc='Evaluating')
+        for pred, mask in tqdm_iterable:
+            pred = np.asarray(pred)
+            mask = np.asarray(mask)          
+            
+            mae = Evaluator.cal_mae(pred, mask)
+            maes.update(mae)
+
+            s = Evaluator.cal_s(pred, mask)
+            ss.update(s)
+        results = {
+            'MAE': maes.average(),
+            'S': ss.average()
+        }
+        
+        return results
+
     # list of Image on cpu
     @staticmethod
-    def evaluate(self, preds, masks):
+    def evaluate(preds, masks):
         assert len(preds) == len(masks), 'diff in length between prediction and map'
         pres = [AverageMeter() for _ in range(256)]
         recs = [AverageMeter() for _ in range(256)]
         maes = AverageMeter()
         maxes = AverageMeter()
         ss = AverageMeter()
-        for pred, mask in zip(preds, mask):
+
+        iterable = list(zip(preds, masks))
+        tqdm_iterable = tqdm(iterable, total=len(iterable), leave=False, desc='Evaluating')
+        for pred, mask in tqdm_iterable:
             pred = np.asarray(pred)
             mask = np.asarray(mask)
-            ps, rs, mae = Evaluator.cal_pr_mae(out_img, gt_img)
+            ps, rs, mae = Evaluator.cal_pr_mae(pred, mask)
             for pidx, pdata in enumerate(zip(ps, rs)):
                 p, r = pdata
                 pres[pidx].update(p)
                 recs[pidx].update(r)
             maes.update(mae)
             
-            maxe = Evaluator.cal_maxe(out_img, gt_img)
+            maxe = Evaluator.cal_maxe(pred, mask)
             maxes.update(maxe)
 
-            s = Evaluator.cal_s(out_img, gt_img)
+            s = Evaluator.cal_s(pred, mask)
             ss.update(s)
-        maxf = Evaluator.cal_maxf([pre.avg for pre in pres], [rec.avg for rec in recs])
+        maxf = Evaluator.cal_maxf([ pre.average() for pre in pres], [rec.average() for rec in recs ])
         results = {
-            'MAE': maes.avarge(),
+            'MAE': maes.average(),
             'MAXF': maxf,
-            'MAXE': maxes.avarge(),
+            'MAXE': maxes.average(),
             'S': ss.average()
         }
         
         return results
-    
+
+    @staticmethod
+    def cal_mae(prediction, gt):
+        assert prediction.dtype == np.uint8
+        assert gt.dtype == np.uint8
+        assert prediction.shape == gt.shape
+        
+        # 确保图片和真值相同 ##################################################
+        # if prediction.shape != gt.shape:
+        #     prediction = Image.fromarray(prediction).convert('L')
+        #     gt_temp = Image.fromarray(gt).convert('L')
+        #     prediction = prediction.resize(gt_temp.size)
+        #     prediction = np.array(prediction)
+        
+        # 获得需要的预测图和二值真值 ###########################################
+        if prediction.max() == prediction.min():
+            prediction = prediction / 255
+        else:
+            prediction = ((prediction - prediction.min()) /
+                        (prediction.max() - prediction.min()))
+        hard_gt = np.zeros_like(gt)
+        hard_gt[gt > 128] = 1
+
+        # MAE ##################################################################
+        mae = np.mean(np.abs(prediction - hard_gt))
+
+        return mae
+
     @staticmethod
     def cal_pr_mae(prediction, gt):
         assert prediction.dtype == np.uint8
@@ -93,7 +151,7 @@ class Evaluator:
                 precision.append(tp / p)
                 recall.append(tp / t)
         
-        return precision, recall, mae, meanf
+        return precision, recall, mae
 
 
     # MaxF #############################################################
@@ -135,7 +193,7 @@ class Evaluator:
             x = pred.mean()
             Q = x
         else:
-            Q = alpha * _S_object(pred, gt) + (1-alpha) * _S_region(pred, gt)
+            Q = alpha * Evaluator._S_object(pred, gt) + (1-alpha) * Evaluator._S_region(pred, gt)
             if Q.item() < 0:
                 Q = np.zeros(1)
         return Q.item()
@@ -144,8 +202,8 @@ class Evaluator:
     def _S_object(pred, gt):
         fg = np.where(gt==0, np.zeros_like(pred), pred)
         bg = np.where((gt==1) | (gt==255), np.zeros_like(pred), 1-pred)
-        o_fg = _object(fg, gt)
-        o_bg = _object(bg, 1-gt)
+        o_fg = Evaluator._object(fg, gt)
+        o_bg = Evaluator._object(bg, 1-gt)
         u = gt.mean()
         Q = u * o_fg + (1-u) * o_bg
         return Q
@@ -161,13 +219,13 @@ class Evaluator:
 
     @staticmethod
     def _S_region(pred, gt):
-        X, Y = _centroid(gt)
-        gt1, gt2, gt3, gt4, w1, w2, w3, w4 = _divideGT(gt, X, Y)
-        p1, p2, p3, p4 = _dividePrediction(pred, X, Y)
-        Q1 = _ssim(p1, gt1)
-        Q2 = _ssim(p2, gt2)
-        Q3 = _ssim(p3, gt3)
-        Q4 = _ssim(p4, gt4)
+        X, Y = Evaluator._centroid(gt)
+        gt1, gt2, gt3, gt4, w1, w2, w3, w4 = Evaluator._divideGT(gt, X, Y)
+        p1, p2, p3, p4 = Evaluator._dividePrediction(pred, X, Y)
+        Q1 = Evaluator._ssim(p1, gt1)
+        Q2 = Evaluator._ssim(p2, gt2)
+        Q3 = Evaluator._ssim(p3, gt3)
+        Q4 = Evaluator._ssim(p4, gt4)
         Q = w1*Q1 + w2*Q2 + w3*Q3 + w4*Q4
         # print(Q)
         return Q
@@ -235,3 +293,20 @@ class Evaluator:
         else:
             Q = 0
         return Q
+
+class FullModelForTest(nn.Module):
+    """
+    Distribute the loss on multi-gpu to reduce 
+    the memory cost in the main gpu.
+    You can check the following discussion.
+    https://discuss.pytorch.org/t/dataparallel-imbalanced-memory-usage/22551/21
+    """
+    def __init__(self, model):
+        super().__init__()
+        self.model = model
+        self.loss = None
+
+    def forward(self, inputs):
+        outputs = self.model(inputs)
+        # will be concatenated along batch axis
+        return outputs
