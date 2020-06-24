@@ -93,8 +93,8 @@ class Deducer:
         self.build_test_model()
         self.model.eval()
 
-        # csv_head = { 'dataset_key', 'S', 'MAXE', 'MAXF', 'MAE' }
-        csv_head = { 'dataset_key', 'S', 'MAE' }
+        csv_head = [ 'dataset_key', 'S', 'MAXE', 'MAXF', 'MAE' ]
+        # csv_head = [ 'dataset_key', 'S', 'MAE' ]
         csv_stuff = [ ]
 
         for dataset_key, dataloader in self.test_dataloaders.items():
@@ -122,7 +122,7 @@ class Deducer:
                     preds.append(pred)
                     masks.append(mask)
             self.logger.info('Start evaluation for dataset {}'.format(dataset_key))
-            results = Evaluator.fast_evaluate(preds, masks)
+            results = Evaluator.evaluate(preds, masks)
             self.logger.info('Finish evaluation for dataset {}'.format(dataset_key))
             results['dataset_key'] = dataset_key
             csv_stuff.append(results)

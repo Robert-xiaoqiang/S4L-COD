@@ -219,8 +219,8 @@ class Trainer():
             = self.build_data(batch_data)
 
             losses, output = self.model(batch_rgb, batch_label)
-            # here loss is gathered from each rank, sum it to scalar
-            loss = losses.sum()
+            # here loss is gathered from each rank, mean it to scalar
+            loss = losses.mean()
             self.on_batch_end(output, batch_label, loss, epoch, batch_index)
 
     def on_batch_end(self, output, batch_label, loss,
@@ -245,10 +245,10 @@ class Trainer():
         self.writer.add_scalar('train/loss_cur', loss, iteration)
         self.writer.add_scalar('train/loss_avg', self.loss_avg_meter.average(), iteration)
         
-        tr_tb_mask = make_grid(batch_label, nrow=train_batch_size, padding=5)
+        tr_tb_mask = make_grid(batch_label[:8], nrow=8, padding=5)
         self.writer.add_image('train/masks', tr_tb_mask, iteration)
         
-        tr_tb_out_1 = make_grid(output, nrow=train_batch_size, padding=5)
+        tr_tb_out_1 = make_grid(output[:8], nrow=8, padding=5)
         self.writer.add_image('train/preds', tr_tb_out_1, iteration)
 
     def summary_loss(self, loss, epoch, iteration):
@@ -258,11 +258,12 @@ class Trainer():
     def on_epoch_end(self, epoch):
         self.lr_scheduler.step(epoch + 1)
         self.save_checkpoint(epoch + 1)
-        results = self.validate()
+        val_loss, results = self.validate()
         
         is_update = results['MAE'] < self.best_val_results['MAE'] and \
                     results['S'] > self.best_val_results['S']
-
+        
+        self.writer.add_scalar('val/loss_cur', val_loss, epoch)
         self.writer.add_scalar('val/S', results['S'], epoch)
         # self.writer.add_scalar('val/MAXF', results['MAXF'], epoch)
         # self.writer.add_scalar('val/MAXE', results['MAXE'], epoch)
@@ -273,6 +274,8 @@ class Trainer():
             self.save_checkpoint(epoch + 1, 'best')
             self.logger.info('Update best epoch')
             self.logger.info('Epoch {} with best validating results: {}'.format(epoch, self.best_val_results))
+        else:
+            self.logger.info('Epoch with validating loss {:.4f}, without updating best epoch'.format(val_loss.item()))
 
     def on_train_end(self):
         self.logger.info('Finish training with epoch {}, close all'.format(self.num_epochs))
@@ -288,9 +291,9 @@ class Trainer():
         for epoch in range(start_epoch, end_epoch):
             self.train_epoch(epoch)
             self.on_epoch_end(epoch)
-        self.on_train_end(epoch)
+        self.on_train_end()
 
-    def test(self, test_dataloader):
+    def test(self):
         deducer = Deducer(self.vanilla_model, self.test_dataloaders, self.config)
         deducer.deduce()
 
@@ -305,7 +308,7 @@ class Trainer():
             with torch.no_grad():
                 batch_rgb, batch_label, batch_mask_path, batch_key, \
                 = self.build_data(batch_data)
-                losses, output = self.model(batch_rgb, batch_label)
+                val_losses, output = self.model(batch_rgb, batch_label)
             
             output_cpu = output.cpu().detach()
             for pred, mask_path in zip(output_cpu, batch_mask_path):
@@ -316,4 +319,4 @@ class Trainer():
         self.logger.info('Start evaluation on validating dataset')
         results = Evaluator.fast_evaluate(preds, masks)
         self.logger.info('Finish evaluation on validating dataset')
-        return results
+        return val_losses.mean(), results

@@ -72,7 +72,7 @@ TRAIN:
   LOSS_FREQ: 10
   TB_FREQ: 10
   OPTIM: 'sgd_trick'
-  LR: 0.01
+  LR: 0.001
   LD: 0.9
   WD: 0.0005
   MOMENTUM: 0.9

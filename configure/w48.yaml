@@ -1,4 +1,4 @@
-NAME: 'w18-baseline-0'
+NAME: 'w48-baseline-0'
 DEVICE: 'cuda:0,1,2,3'
 SEED: 32767
 SUMMARY_DIR: '/home/xqwang/projects/camouflaged/dev/summary'
@@ -64,15 +64,15 @@ TRAIN:
   TRAIN_SIZE:
   - 352
   - 352
-  BATCH_SIZE: 64
+  BATCH_SIZE: 32
   SHUFFLE: true
-  NUM_EPOCHS: 288
+  NUM_EPOCHS: 900
   RESUME: true
   WORKERS: 4
   LOSS_FREQ: 10
   TB_FREQ: 10
   OPTIM: 'sgd_trick'
-  LR: 0.01
+  LR: 0.001
   LD: 0.9
   WD: 0.0005
   MOMENTUM: 0.9
@@ -81,8 +81,10 @@ TRAIN:
 VAL:
   DATASET_ROOT: '/home/xqwang/projects/camouflaged/datasets/VAL'
 TEST:
-  DATASET_ROOT:
-  - '/home/xqwang/projects/camouflaged/datasets/CAMO'
-  - '/home/xqwang/projects/camouflaged/datasets/COD10K'
-  - '/home/xqwang/projects/camouflaged/datasets/CPD10K'
-  BATCH_SIZE: 128
+  DATASET_ROOTS:
+  - CAMO: '/home/xqwang/projects/camouflaged/datasets/CAMO'
+  - CHAMELEON: '/home/xqwang/projects/camouflaged/datasets/CHAMELEON'
+  - COD10K: '/home/xqwang/projects/camouflaged/datasets/COD10K'
+  - CPD1K: '/home/xqwang/projects/camouflaged/datasets/CPD1K'
+  BATCH_SIZE: 32
+  WORKERS: 8
