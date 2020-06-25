@@ -14,7 +14,7 @@ def parse_args():
     
     parser.add_argument('--cfg',
                         help='experiment configure file name',
-                        default='/home/xqwang/projects/camouflaged/dev/configure/w18.yaml',
+                        default='/home/xqwang/projects/camouflaged/dev/configure/w48.yaml',
                         type=str)
     parser.add_argument('opts',
                         help="Modify config options using the command-line",
