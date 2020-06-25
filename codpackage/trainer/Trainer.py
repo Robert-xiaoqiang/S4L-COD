@@ -299,6 +299,7 @@ class Trainer():
 
     def validate(self):
         self.model.eval()
+        val_loss = AverageMeter()
 
         preds = [ ]
         masks = [ ]
@@ -308,8 +309,9 @@ class Trainer():
             with torch.no_grad():
                 batch_rgb, batch_label, batch_mask_path, batch_key, \
                 = self.build_data(batch_data)
-                val_losses, output = self.model(batch_rgb, batch_label)
+                losses, output = self.model(batch_rgb, batch_label)
             
+            val_loss.update(losses.mean().item())
             output_cpu = output.cpu().detach()
             for pred, mask_path in zip(output_cpu, batch_mask_path):
                 mask = copy.deepcopy(Image.open(mask_path).convert('L'))
@@ -319,4 +321,4 @@ class Trainer():
         self.logger.info('Start evaluation on validating dataset')
         results = Evaluator.fast_evaluate(preds, masks)
         self.logger.info('Finish evaluation on validating dataset')
-        return val_losses.mean(), results
+        return val_loss.average(), results
