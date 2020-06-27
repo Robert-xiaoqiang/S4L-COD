@@ -4,7 +4,28 @@ import numpy as np
 from tqdm import tqdm
 from .TrainHelper import AverageMeter
 
+import math
+
 class Evaluator:
+
+    # evaluate only weight f-measure
+    @staticmethod
+    def weightedf_evaluate(preds, masks):
+        assert len(preds) == len(masks), 'diff in length between prediction and map'
+        maes = AverageMeter()
+        ss = AverageMeter()
+
+        iterable = list(zip(preds, masks))
+        tqdm_iterable = tqdm(iterable, total=len(iterable), leave=False, desc='Evaluating')
+        for pred, mask in tqdm_iterable:
+            pred = np.asarray(pred)
+            mask = np.asarray(mask)          
+            
+        results = {
+            'WeightF': wfs.average() 
+        }
+        
+        return results
 
     # evaluate without f-measure and s-measure
     @staticmethod
@@ -67,6 +88,42 @@ class Evaluator:
         }
         
         return results
+
+    sigma2 = 5
+    coe1 = 1.0 / math.sqrt(2 * math.PI * sigma2)
+    coe2 = -1.0 / (2 * sigma2)
+    @staticmethod
+    def cal_wf(prediction, gt):
+        assert prediction.dtype == np.uint8
+        assert gt.dtype == np.uint8
+        assert prediction.shape == gt.shape
+        
+        if prediction.max() == prediction.min():
+            prediction = prediction / 255
+        else:
+            prediction = ((prediction - prediction.min()) /
+                        (prediction.max() - prediction.min()))
+        hard_gt = np.zeros_like(gt)
+        hard_gt[gt > 128] = 1
+
+        # absoluate error
+        e = np.abs(prediction - hard_gt)
+
+        H, W = e.shape
+        N = H * W
+        er = e.reshape(-1)
+        A = np.zeros((N, N))
+        B = np.ones((N, ))
+        D2 = np.zeros((N, N))
+        for i in range(N):
+            for j in range(N):
+                iindex = np.asarray(np.unravel_index(i, (H, W)))
+                jindex = np.asarray(np.unravel_index(j, (H, W)))
+                diff = iindex - jindex
+                d2 = np.sum(np.power(diff, 2), axis = 0)
+                # d = np.sqrt(d2)
+                D2[i, j] = d2
+        return mae
 
     @staticmethod
     def cal_mae(prediction, gt):
@@ -152,7 +209,6 @@ class Evaluator:
                 recall.append(tp / t)
         
         return precision, recall, mae
-
 
     # MaxF #############################################################
     @staticmethod
