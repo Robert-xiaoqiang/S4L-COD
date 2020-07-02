@@ -95,6 +95,7 @@ class Deducer:
 
         csv_head = [ 'dataset_key', 'S', 'MAXE', 'MAXF', 'MAE' ]
         # csv_head = [ 'dataset_key', 'S', 'MAE' ]
+        # csv_head = [ 'dataset_key', 'WeightedF' ]
         csv_stuff = [ ]
 
         for dataset_key, dataloader in self.test_dataloaders.items():

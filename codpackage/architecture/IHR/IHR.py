@@ -11,6 +11,7 @@ import torch._utils
 import torch.nn.functional as F
 
 from .sync_batchnorm.batchnorm import SynchronizedBatchNorm2d
+from .non_local.dotproduct import NonLocalBlock2D, MultiViewNonLocalBlock2D
 
 BatchNorm2d = SynchronizedBatchNorm2d
 BN_MOMENTUM = 0.01
@@ -248,7 +249,7 @@ blocks_dict = {
 }
 
 
-class HRNet(nn.Module):
+class IHR(nn.Module):
 
     def __init__(self, config):
         extra = config.MODEL.EXTRA
@@ -303,6 +304,11 @@ class HRNet(nn.Module):
         last_inp_channels = np.int(np.sum(pre_stage_channels))
 
         self.last_layer = nn.Sequential(
+            NonLocalBlock2D(
+                last_inp_channels,
+                sub_sample=True,
+                bn_layer=True
+            ),
             nn.Conv2d(
                 in_channels=last_inp_channels,
                 out_channels=last_inp_channels,

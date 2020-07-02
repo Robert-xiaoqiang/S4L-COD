@@ -18,7 +18,7 @@ from ..helper.TrainHelper import AverageMeter, LoggerPather, DeviceWrapper, Full
 from ..helper.TestHelper import Evaluator
 from ..inference.Deducer import Deducer
 
-class Trainer():
+class SupervisedTrainer:
     def __init__(self, model, train_dataloader, val_dataloader, test_dataloaders, config):
         self.model = model
         self.config = config
@@ -219,8 +219,11 @@ class Trainer():
             = self.build_data(batch_data)
 
             losses, output = self.model(batch_rgb, batch_label)
-            # here loss is gathered from each rank, mean it to scalar
-            loss = losses.mean()
+            # here loss is gathered from each rank, mean/sum it to scalar
+            if self.config.TRAIN.REDUCTION == 'mean':
+                loss = losses.mean()
+            else:
+                loss = losses.sum()
             self.on_batch_end(output, batch_label, loss, epoch, batch_index)
 
     def on_batch_end(self, output, batch_label, loss,
@@ -275,7 +278,7 @@ class Trainer():
             self.logger.info('Update best epoch')
             self.logger.info('Epoch {} with best validating results: {}'.format(epoch, self.best_val_results))
         else:
-            self.logger.info('Epoch with validating loss {:.4f}, without updating best epoch'.format(val_loss.item()))
+            self.logger.info('Epoch with validating loss {:.4f}, without updating best epoch'.format(val_loss))
 
     def on_train_end(self):
         self.logger.info('Finish training with epoch {}, close all'.format(self.num_epochs))

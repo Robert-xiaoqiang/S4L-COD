@@ -23,6 +23,7 @@ _C.MODEL.EXTRA = CN(new_allowed=True)
 
 # training
 _C.TRAIN = CN()
+_C.TRAIN.TRAINER = ''
 _C.TRAIN.DATASET_ROOT = ''
 _C.TRAIN.TRAIN_SIZE = [352, 352]  # width * height
 _C.TRAIN.BATCH_SIZE = 8

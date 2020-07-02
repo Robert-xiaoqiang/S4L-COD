@@ -2,6 +2,10 @@ import torch
 from torch import nn
 import numpy as np
 from tqdm import tqdm
+from scipy.ndimage.morphology import distance_transform_edt
+from scipy.sparse import lil_matrix
+import cv2
+
 from .TrainHelper import AverageMeter
 
 import math
@@ -12,8 +16,7 @@ class Evaluator:
     @staticmethod
     def weightedf_evaluate(preds, masks):
         assert len(preds) == len(masks), 'diff in length between prediction and map'
-        maes = AverageMeter()
-        ss = AverageMeter()
+        wfs = AverageMeter()
 
         iterable = list(zip(preds, masks))
         tqdm_iterable = tqdm(iterable, total=len(iterable), leave=False, desc='Evaluating')
@@ -21,8 +24,11 @@ class Evaluator:
             pred = np.asarray(pred)
             mask = np.asarray(mask)          
             
+            wf = Evaluator.cal_wf(pred, mask)
+            wfs.update(wf)
+
         results = {
-            'WeightF': wfs.average() 
+            'WeightedF': wfs.average() 
         }
         
         return results
@@ -90,8 +96,10 @@ class Evaluator:
         return results
 
     sigma2 = 5
-    coe1 = 1.0 / math.sqrt(2 * math.PI * sigma2)
+    coe1 = 1.0 / np.sqrt(2 * np.pi * sigma2)
     coe2 = -1.0 / (2 * sigma2)
+    coe3 = np.log(0.5) / 5.0
+    beta2 = 0.3
     @staticmethod
     def cal_wf(prediction, gt):
         assert prediction.dtype == np.uint8
@@ -108,22 +116,48 @@ class Evaluator:
 
         # absoluate error
         e = np.abs(prediction - hard_gt)
-
+        print(e.shape)
         H, W = e.shape
         N = H * W
-        er = e.reshape(-1)
-        A = np.zeros((N, N))
-        B = np.ones((N, ))
-        D2 = np.zeros((N, N))
+        E = e.reshape(-1)
+        D = prediction.reshape(-1)
+        G = hard_gt.reshape(-1)
+        nG = np.ones_like(hard_gt) - hard_gt
+
+        bdisttransform = distance_transform_edt(nG).reshape(-1)
+        A = lil_matrix((N, N), dtype = np.float32) # pixel dependency
+        B = np.ones((N, ), dtype = np.float32) # pixel importance
+        # D2 = np.zeros((N, N))
+
         for i in range(N):
-            for j in range(N):
+            for j in range(i + 1, N):
                 iindex = np.asarray(np.unravel_index(i, (H, W)))
                 jindex = np.asarray(np.unravel_index(j, (H, W)))
                 diff = iindex - jindex
                 d2 = np.sum(np.power(diff, 2), axis = 0)
                 # d = np.sqrt(d2)
-                D2[i, j] = d2
-        return mae
+                # D2[i, j] = D[j, i] = d2
+                if G[i] == 1 and G[j] == 1:
+                    A[i, j] = A[j, i] = Evaluator.coe1 * (np.e ** (Evaluator.coe2 * d2))
+            if not G[i]:
+                # diagonal element
+                A[i, i] = 1
+                # build B non-one element
+                B[i] = 2 - np.e ** (Evaluator.coe3 * bdisttransform[i])
+
+        Ew = np.minimum(E, E.reshape(1, N).dot(A))
+        nEw = np.ones_like(Ew) - Ew
+        TPw = nEw * G
+        TNw = nEw * nG
+        FPw = Ew * nG
+        FNw = Ew * G
+
+        Pw = np.sum(TPw) / (np.sum(TPw) + np.sum(FPw))
+        Rw = np.sum(TPw) / (np.sum(TPw) + np.sum(FNw))
+
+        wf = (1 + Evaluator.beta2) * Pw * Rw / (Evaluator.beta2 * Pw + Rw)
+
+        return wf
 
     @staticmethod
     def cal_mae(prediction, gt):

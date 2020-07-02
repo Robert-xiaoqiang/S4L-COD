@@ -60,6 +60,7 @@ MODEL:
       - 144
       FUSE_METHOD: SUM
 TRAIN:
+  TRAINER: 'SupervisedTrainer'
   DATASET_ROOT: '/home/xqwang/projects/camouflaged/datasets/COD10K_CPD1K_CAMO_Combined'
   TRAIN_SIZE:
   - 352
@@ -72,7 +73,7 @@ TRAIN:
   LOSS_FREQ: 10
   TB_FREQ: 10
   OPTIM: 'sgd_trick'
-  LR: 0.001
+  LR: 0.0001
   LD: 0.9
   WD: 0.0005
   MOMENTUM: 0.9
