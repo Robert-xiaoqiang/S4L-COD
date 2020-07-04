@@ -1,4 +1,4 @@
-from . import HRNet, IHR
+from . import HRNet, IHR, MultiIHR
 # print(locals())
 def get_model(cfg):
     # get class
