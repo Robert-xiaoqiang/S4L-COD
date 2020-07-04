@@ -1,4 +1,4 @@
-NAME: 'w18-nonlocal-0'
+NAME: 'w18-nonlocal-3nl'
 DEVICE: 'cuda:0,1,2,3'
 SEED: 32767
 SUMMARY_DIR: '/home/xqwang/projects/camouflaged/dev/summary'
