@@ -1,4 +1,4 @@
-NAME: 'w48-nonlocal-0'
+NAME: 'w48-nonlocal-3nl'
 DEVICE: 'cuda:0,1,2,3'
 SEED: 32767
 SUMMARY_DIR: '/home/xqwang/projects/camouflaged/dev/summary'
@@ -65,7 +65,7 @@ TRAIN:
   TRAIN_SIZE:
   - 352
   - 352
-  BATCH_SIZE: 32
+  BATCH_SIZE: 16
   SHUFFLE: true
   NUM_EPOCHS: 900
   RESUME: true
@@ -87,5 +87,5 @@ TEST:
   - CHAMELEON: '/home/xqwang/projects/camouflaged/datasets/CHAMELEON'
   - COD10K: '/home/xqwang/projects/camouflaged/datasets/COD10K'
   - CPD1K: '/home/xqwang/projects/camouflaged/datasets/CPD1K'
-  BATCH_SIZE: 32
+  BATCH_SIZE: 16
   WORKERS: 8
