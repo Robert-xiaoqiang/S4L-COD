@@ -88,7 +88,6 @@ class NonLocalBlockBase(nn.Module):
 
         return W_y
 
-
 class NonLocalBlock1D(NonLocalBlockBase):
     def __init__(self, in_channels, inter_channels=None, sub_sample=True, bn_layer=True):
         super().__init__(in_channels,

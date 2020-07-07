@@ -304,21 +304,23 @@ class MultiIHR(nn.Module):
         last_inp_channels = np.int(np.sum(pre_stage_channels))
 
         self.last_layer = nn.Sequential(
-            MultiViewNonLocalBlock2D(
-                in_channels = [ last_inp_channels, config.TRAIN.TRAIN_SIZE[1] // 4,  config.TRAIN.TRAIN_SIZE[0] // 4],
-                sub_sample=True,
-                bn_layer=True
-            ),
             nn.Conv2d(
                 in_channels=last_inp_channels,
-                out_channels=last_inp_channels,
+                out_channels=last_inp_channels // 4,
                 kernel_size=1,
                 stride=1,
                 padding=0),
-            BatchNorm2d(last_inp_channels, momentum=BN_MOMENTUM),
-            nn.ReLU(inplace=False),
+            BatchNorm2d(last_inp_channels // 4, momentum=BN_MOMENTUM),
+            nn.ReLU(inplace = True),
+            
+            MultiViewNonLocalBlock2D(
+                in_channels = [ last_inp_channels // 4, config.TRAIN.TRAIN_SIZE[1] // 4,  config.TRAIN.TRAIN_SIZE[0] // 4],
+                sub_sample=True,
+                bn_layer=True
+            ),
+
             nn.Conv2d(
-                in_channels=last_inp_channels,
+                in_channels=last_inp_channels // 4,
                 out_channels=1,
                 kernel_size=extra.FINAL_CONV_KERNEL,
                 stride=1,
