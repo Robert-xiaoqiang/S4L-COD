@@ -250,10 +250,10 @@ blocks_dict = {
 
 
 class IHR(nn.Module):
-
     def __init__(self, config):
-        extra = config.MODEL.EXTRA
         super().__init__()
+        extra = config.MODEL.EXTRA
+        self.config = config
 
         # stem net
         self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=2, padding=1,
@@ -271,9 +271,10 @@ class IHR(nn.Module):
         num_blocks = self.stage1_cfg['NUM_BLOCKS'][0]
         self.layer1 = self._make_layer(block, 64, num_channels, num_blocks)
         stage1_out_channel = block.expansion*num_channels
-        self.nl1 = nn.ModuleList([
-            NonLocalBlock2D(in_channels=stage1_out_channel, sub_sample=True, bn_layer=True)
-        ])
+        if config.MODEL.NONLOCAL_TYPE == 'multiple':
+            self.nl1 = nn.ModuleList([
+                NonLocalBlock2D(in_channels=stage1_out_channel, sub_sample=True, bn_layer=True)
+            ])
 
         # state 2
         self.stage2_cfg = extra['STAGE2']
@@ -285,10 +286,11 @@ class IHR(nn.Module):
             [stage1_out_channel], num_channels)
         self.stage2, pre_stage_channels = self._make_stage(
             self.stage2_cfg, num_channels)
-        self.nl2 = nn.ModuleList([
-            NonLocalBlock2D(in_channels=c, sub_sample=True, bn_layer=True)
-            for c in pre_stage_channels
-        ])
+        if config.MODEL.NONLOCAL_TYPE == 'multiple':
+            self.nl2 = nn.ModuleList([
+                NonLocalBlock2D(in_channels=c, sub_sample=True, bn_layer=True)
+                for c in pre_stage_channels
+            ])
 
         # stage 3
         self.stage3_cfg = extra['STAGE3']
@@ -300,10 +302,11 @@ class IHR(nn.Module):
             pre_stage_channels, num_channels)
         self.stage3, pre_stage_channels = self._make_stage(
             self.stage3_cfg, num_channels)
-        self.nl3 = nn.ModuleList([
-            NonLocalBlock2D(in_channels=c, sub_sample=True, bn_layer=True)
-            for c in pre_stage_channels
-        ])
+        if config.MODEL.NONLOCAL_TYPE == 'multiple':
+            self.nl3 = nn.ModuleList([
+                NonLocalBlock2D(in_channels=c, sub_sample=True, bn_layer=True)
+                for c in pre_stage_channels
+            ])
 
         # stage 4
         self.stage4_cfg = extra['STAGE4']
@@ -433,7 +436,8 @@ class IHR(nn.Module):
         x = self.bn2(x)
         x = self.relu(x)
         x = self.layer1(x)
-        x = self.nl1[0](x)
+        if self.config.MODEL.NONLOCAL_TYPE == 'multiple':
+            x = self.nl1[0](x)
 
         x_list = []
         for i in range(self.stage2_cfg['NUM_BRANCHES']):
@@ -442,7 +446,8 @@ class IHR(nn.Module):
             else:
                 x_list.append(x)
         y_list = self.stage2(x_list)
-        y_list = [ self.nl2[i](y_list[i]) for i in range(len(y_list)) ]
+        if self.config.MODEL.NONLOCAL_TYPE == 'multiple':
+            y_list = [ self.nl2[i](y_list[i]) for i in range(len(y_list)) ]
 
         x_list = []
         for i in range(self.stage3_cfg['NUM_BRANCHES']):
@@ -454,7 +459,8 @@ class IHR(nn.Module):
             else:
                 x_list.append(y_list[i])
         y_list = self.stage3(x_list)
-        y_list = [ self.nl3[i](y_list[i]) for i in range(len(y_list)) ]
+        if self.config.MODEL.NONLOCAL_TYPE == 'multiple':
+            y_list = [ self.nl3[i](y_list[i]) for i in range(len(y_list)) ]
 
         x_list = []
         for i in range(self.stage4_cfg['NUM_BRANCHES']):

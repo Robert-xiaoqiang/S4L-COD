@@ -180,6 +180,7 @@ class SupervisedTrainer:
             self.logger.info('Cannot find pretrained model checkpoint: ' + model_file_name)
             return False
         else:
+            self.logger.info('Find pretrained model checkpoint successfully: ' + model_file_name)            
             map_location = (lambda storage, loc: storage) if self.main_device == 'cpu' else self.main_device
             params = torch.load(model_file_name, map_location = map_location)
             

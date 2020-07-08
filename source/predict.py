@@ -33,7 +33,7 @@ def main():
     test_dataloaders = preprocessor.get_test_dataloaders()
 
     deducer = Deducer(model, test_dataloaders, config)
-    deducer.deduce()
+    deducer.predict()
 
 if __name__ == '__main__':
     main()

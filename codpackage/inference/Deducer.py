@@ -69,6 +69,7 @@ class Deducer:
             self.logger.info('Cannot find pretrained model checkpoint: ' + model_file_name)
             return False
         else:
+            self.logger.info('Find pretrained model checkpoint successfully: ' + model_file_name)
             map_location = (lambda storage, loc: storage) if self.main_device == 'cpu' else self.main_device
             params = torch.load(model_file_name, map_location = map_location)
             
@@ -136,3 +137,30 @@ class Deducer:
             for row in csv_stuff:
                 writer.writerow(row)
         self.logger.info('Finish saving it, enjoy everything')
+
+    # predict only without evaluation
+    def predict(self):
+        self.build_test_model()
+        self.model.eval()
+
+        for dataset_key, dataloader in self.test_dataloaders.items():
+            self.logger.info('Test on {}'.format(dataset_key))
+            save_path = os.path.join(self.prediction_path, dataset_key)
+            os.makedirs(save_path, exist_ok = True)
+
+            tqdm_iter = tqdm(enumerate(dataloader), total=len(dataloader), leave=False)
+            for batch_id, batch_data in tqdm_iter:
+                tqdm_iter.set_description(f'Infering: te=>{batch_id + 1}')
+                with torch.no_grad():
+                    batch_rgb, batch_label, batch_mask_path, batch_key, \
+                    = self.build_data(batch_data)
+                    output = self.model(batch_rgb)
+
+                output_cpu = output.cpu().detach()
+                for pred, mask_path, image_main_name in zip(output_cpu, batch_mask_path, batch_key):
+                    mask = copy.deepcopy(Image.open(mask_path).convert('L'))
+                    
+                    pred = self.to_pil(pred).convert('L').resize(mask.size)
+                    pred.save(os.path.join(save_path, image_main_name + '.png'))
+
+        self.logger.info('Finish predicting it, enjoy everything')
