@@ -9,7 +9,7 @@ modelNum = length(Models);
 
 % ---- 2. Ground-truth Datasets Setting ----
 DataPath = '/home/xqwang/projects/camouflaged/datasets/';
-Datasets = {'CHAMELEON', 'CAMO', 'COD10K'};  % You may also need other datasets, such as Datasets = {'CAMO','CPD1K'};
+Datasets = {'CHAMELEON', 'CAMO', 'COD10K', 'CPD1K'};  % You may also need other datasets, such as Datasets = {'CAMO','CPD1K'};
 
 % ---- 3. Results Save Path Setting ----
 ResDir = '/home/xqwang/projects/camouflaged/dev/summary/';
