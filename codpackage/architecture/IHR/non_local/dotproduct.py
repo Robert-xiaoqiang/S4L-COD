@@ -128,13 +128,16 @@ class MultiViewNonLocalBlockBase(nn.Module):
         super().__init__()
         self.n_views = n_views
         self.blocks = nn.ModuleList([ NonLocalBlockBase(in_channels[i], inter_channels[i] if inter_channels is not None else None, dimension, sub_sample, bn_layer) for i in range(self.n_views) ])
-    
+        # set in subclass
+        # N * in_channels[0] -> in_channels[0]
+        self.fuse_response = None
     def forward(self, x):
         raise NotImplementedError
 
 class MultiViewNonLocalBlock1D(MultiViewNonLocalBlockBase):
     def __init__(self, in_channels, inter_channels=None, sub_sample=True, bn_layer=True):
         super().__init__(2, in_channels, inter_channels=inter_channels, dimension=1, sub_sample=sub_sample, bn_layer=bn_layer)
+        self.fuse_response = nn.Conv2d(2 * in_channels[0], in_channels[0], 3, stride = 1, padding = 1)
 
     def forward(self, x):
         B, C, H = x.shape
@@ -144,14 +147,16 @@ class MultiViewNonLocalBlock1D(MultiViewNonLocalBlockBase):
         x_h = x.permute(0, 2, 1)
         response_h = self.blocks[1](x_h)
         response_h = response_h.permute(0, 2, 1)
-
-        y = response_c + response_h + x
+        response = torch.cat([ response_c, response_h ], dim = 1)
+        response = self.fuse_response(response)
+        y = response + x
 
         return y
 
 class MultiViewNonLocalBlock2D(MultiViewNonLocalBlockBase):
     def __init__(self, in_channels, inter_channels=None, sub_sample=True, bn_layer=True):
         super().__init__(3, in_channels, inter_channels=inter_channels, dimension=2, sub_sample=sub_sample, bn_layer=bn_layer)
+        self.fuse_response = nn.Conv2d(3 * in_channels[0], in_channels[0], 3, stride = 1, padding = 1)
 
     def forward(self, x):
         B, C, H, W = x.shape
@@ -166,13 +171,16 @@ class MultiViewNonLocalBlock2D(MultiViewNonLocalBlockBase):
         response_w = self.blocks[2](x_w)
         response_w = response_w.permute(0, 3, 2, 1)
 
-        y = response_c + response_h + response_w + x
+        response = torch.cat([ response_c, response_h, response_w ], dim = 1)
+        response = self.fuse_response(response)
+        y = response + x
 
         return y
 
 class MultiViewNonLocalBlock3D(MultiViewNonLocalBlockBase):
     def __init__(self, in_channels, inter_channels=None, sub_sample=True, bn_layer=True):
         super().__init__(4, in_channels, inter_channels=inter_channels, dimension=3, sub_sample=sub_sample, bn_layer=bn_layer)
+        self.fuse_response = nn.Conv2d(4 * in_channels[0], in_channels[0], 3, stride = 1, padding = 1)
 
     def forward(self, x):
         B, C, T, H, W = x.shape
@@ -191,7 +199,9 @@ class MultiViewNonLocalBlock3D(MultiViewNonLocalBlockBase):
         response_w = self.blocks[3](x_w)
         response_w = response_w.permute(0, 4, 2, 3, 1)
 
-        y = response_c + response_t + response_h + response_w + x
+        response = torch.cat([ response_c, response_t, response_h, response_w ], dim = 1)
+        response = self.fuse_response(response)
+        y = response + x
 
         return y
 

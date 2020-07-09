@@ -41,6 +41,7 @@ class Deducer:
         self.logger = loggerpather.get_logger()
         self.snapshot_path = loggerpather.get_snapshot_path()
         self.prediction_path = loggerpather.get_prediction_path()
+        self.csv_file_name = loggerpather.get_prediction_csv_file_name()
 
         self.loaded_epoch = None
         self.to_pil = transforms.ToPILImage()
@@ -129,9 +130,8 @@ class Deducer:
             results['dataset_key'] = dataset_key
             csv_stuff.append(results)
 
-        csv_file_name = os.path.join(self.prediction_path, 'results.csv')
-        self.logger.info('Finish testing, let\'s, save results in {}'.format(csv_file_name))
-        with open(csv_file_name, 'w') as f:
+        self.logger.info('Finish testing, let\'s, save results in {}'.format(self.csv_file_name))
+        with open(self.csv_file_name, 'w') as f:
             writer = csv.DictWriter(f, fieldnames = csv_head)
             writer.writeheader()
             for row in csv_stuff:

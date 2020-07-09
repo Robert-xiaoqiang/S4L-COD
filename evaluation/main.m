@@ -4,7 +4,10 @@ clc;
 
 % ---- 1. CamouflageMap Path Setting ----
 SalMapPath = '/home/xqwang/projects/camouflaged/dev/summary/';   % Put model results in this folder.
-Models = {'w18-baseline-0','w48-baseline-0', 'w18-nonlocal-0', 'w18-nonlocal-3nl', 'w48-nonlocal-0', 'w48-nonlocal-3nl', 'w48-multiview-nonlocal-0'};   % You can add other model like: Models = {'2019-ICCV-EGNet','2019-CVPR-CPD'};
+Models = {'w18-baseline-0', 'w18-nonlocal-0', ...
+          'w18-nonlocal-3nl', 'w48-baseline-0', ...
+          'w48-nonlocal-0', 'w48-nonlocal-3nl', ...
+          'w48-multiview-nonlocal-0'};   % You can add other model like: Models = {'2019-ICCV-EGNet','2019-CVPR-CPD'};
 modelNum = length(Models);
 
 % ---- 2. Ground-truth Datasets Setting ----
@@ -13,7 +16,7 @@ Datasets = {'CHAMELEON', 'CAMO', 'COD10K', 'CPD1K'};  % You may also need other 
 
 % ---- 3. Results Save Path Setting ----
 ResDir = '/home/xqwang/projects/camouflaged/dev/summary/';
-ResName = 'results.txt';  % You can change the result name.
+% ResName = 'results.txt';  % You can change the result name.
 
 Thresholds = 1:-1/255:0;
 datasetNum = length(Datasets);
@@ -35,8 +38,8 @@ for d = 1:datasetNum
         gtPath = [DataPath dataset '/GT/'];
         salPath = [SalMapPath model '/prediction/' dataset '/'];
 
-        resTxt = [ResDir model '/prediction/' ResName];  % The evaluation result will be saved in `../Resluts/Result-XXXX` folder.
-        fileID = fopen(resTxt,'w');
+        resTxt = [ResDir model '/prediction/' model '.txt'];  % The evaluation result will be saved in `../Resluts/Result-XXXX` folder.
+        fileID = fopen(resTxt,'a');
 
         imgFiles = dir([salPath '*.png']);  
         imgNUM = length(imgFiles);
@@ -132,8 +135,8 @@ for d = 1:datasetNum
         mae = mean2(MAE);
         
         % save([ResPath model],'Sm','wFm', 'mae', 'column_Pr', 'column_Rec', 'column_F', 'adpFm', 'meanFm', 'maxFm', 'column_E', 'adpEm', 'meanEm', 'maxEm');
-        fprintf(fileID, '(Dataset:%s; Model:%s) Smeasure:%.3f; wFmeasure:%.3f;MAE:%.3f; adpEm:%.3f; meanEm:%.3f; maxEm:%.3f; adpFm:%.3f; meanFm:%.3f; maxFm:%.3f.\n',dataset,model,Sm, wFm, mae, adpEm, meanEm, maxEm, adpFm, meanFm, maxFm); 
-        fprintf('(Dataset:%s; Model:%s) Smeasure:%.3f; wFmeasure:%.3f;MAE:%.3f; adpEm:%.3f; meanEm:%.3f; maxEm:%.3f; adpFm:%.3f; meanFm:%.3f; maxFm:%.3f.\n',dataset,model,Sm, wFm, mae, adpEm, meanEm, maxEm, adpFm, meanFm, maxFm);
+        fprintf(fileID, '(Dataset:%s; Model:%s) Smeasure:%.3f; maxEm:%.3f; wFmeasure:%.3f; MAE:%.3f; adpEm:%.3f; meanEm:%.3f; adpFm:%.3f; meanFm:%.3f; maxFm:%.3f.\n', dataset, model, Sm, maxEm, wFm, mae, adpEm, meanEm, adpFm, meanFm, maxFm); 
+        fprintf('(Dataset:%s; Model:%s) Smeasure:%.3f; maxEm:%.3f; wFmeasure:%.3f; MAE:%.3f; adpEm:%.3f; meanEm:%.3f; adpFm:%.3f; meanFm:%.3f; maxFm:%.3f.\n',dataset, model, Sm, maxEm, wFm, mae, adpEm, meanEm, adpFm, meanFm, maxFm);
     end
     toc;
     

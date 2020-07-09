@@ -268,6 +268,8 @@ class LoggerPather:
         self.prediction_path = self.root_output_dir / 'prediction'
         self.prediction_path.mkdir(parents=True, exist_ok=True)
 
+        self.prediction_csv_file_name = self.prediction_path / (cfg.NAME + '.csv')
+
     def get_logger(self):
         return self.logger
         
@@ -279,6 +281,9 @@ class LoggerPather:
 
     def get_prediction_path(self):
         return str(self.prediction_path)
+
+    def get_prediction_csv_file_name(self):
+        return str(self.prediction_csv_file_name)
 
 class AverageMeter:
     """Computes and stores the average and current value"""
