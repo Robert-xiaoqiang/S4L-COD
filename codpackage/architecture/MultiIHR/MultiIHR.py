@@ -10,8 +10,8 @@ import torch.nn as nn
 import torch._utils
 import torch.nn.functional as F
 
-from .sync_batchnorm.batchnorm import SynchronizedBatchNorm2d
-from .non_local.dotproduct import NonLocalBlock2D, MultiViewNonLocalBlock2D
+from ..Component.sync_batchnorm.batchnorm import SynchronizedBatchNorm2d
+from ..Component.non_local.dotproduct import NonLocalBlock2D, MultiViewNonLocalBlock2D
 
 BatchNorm2d = SynchronizedBatchNorm2d
 BN_MOMENTUM = 0.01

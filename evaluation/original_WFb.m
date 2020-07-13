@@ -46,5 +46,5 @@ R = 1- mean2(Ew(GT)); %Weighed Recall
 P = TPw./(eps+TPw+FPw); %Weighted Precision
 
 Q = (2)*(R*P)./(eps+R+P); %Beta=1;
-% Q = (1+Beta^2)*(R*P)./(eps+R+(Beta.*P));
+% Q = (1+Beta^2)*(R*P)./(eps+R+(Beta^2.*P));
 end
