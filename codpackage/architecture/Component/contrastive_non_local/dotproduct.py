@@ -3,6 +3,7 @@ from torch import nn
 from torch.nn import init
 from torch.nn import functional as F
 
+from .contrastive import MultiViewNonLocalFeatureContrastiveLoss
 
 class NonLocalBlockBase(nn.Module):
     def __init__(self, in_channels, inter_channels=None, dimension=3, sub_sample=True, bn_layer=True):
@@ -135,10 +136,10 @@ class MultiViewNonLocalBlockBase(nn.Module):
         raise NotImplementedError
 
 class MultiViewNonLocalBlock1D(MultiViewNonLocalBlockBase):
-    def __init__(self, in_channels, inter_channels=None, sub_sample=True, bn_layer=True):
+    def __init__(self, in_channels, inter_channels=None, sub_sample=True, bn_layer=True, temperature=0.5, use_cosine_similarity=True):
         super().__init__(2, in_channels, inter_channels=inter_channels, dimension=1, sub_sample=sub_sample, bn_layer=bn_layer)
         self.fuse_response = nn.Conv2d(2 * in_channels[0], in_channels[0], 3, stride = 1, padding = 1)
-
+        self.contrastive_loss = MultiViewNonLocalFeatureContrastiveLoss(2, in_channels[0], temperature, use_cosine_similarity)
     def forward(self, x):
         B, C, H = x.shape
         x_c = x
@@ -150,14 +151,15 @@ class MultiViewNonLocalBlock1D(MultiViewNonLocalBlockBase):
         response = torch.cat([ response_c, response_h ], dim = 1)
         response = self.fuse_response(response)
         y = response + x
+        agreement = self.contrastive_loss(response_c, response_h)
 
-        return y
+        return y, agreement
 
 class MultiViewNonLocalBlock2D(MultiViewNonLocalBlockBase):
-    def __init__(self, in_channels, inter_channels=None, sub_sample=True, bn_layer=True):
+    def __init__(self, in_channels, inter_channels=None, sub_sample=True, bn_layer=True, temperature=0.5, use_cosine_similarity=True):
         super().__init__(3, in_channels, inter_channels=inter_channels, dimension=2, sub_sample=sub_sample, bn_layer=bn_layer)
         self.fuse_response = nn.Conv2d(3 * in_channels[0], in_channels[0], 3, stride = 1, padding = 1)
-
+        self.contrastive_loss = MultiViewNonLocalFeatureContrastiveLoss(3, in_channels[0], temperature, use_cosine_similarity)
     def forward(self, x):
         B, C, H, W = x.shape
         x_c = x
@@ -174,14 +176,15 @@ class MultiViewNonLocalBlock2D(MultiViewNonLocalBlockBase):
         response = torch.cat([ response_c, response_h, response_w ], dim = 1)
         response = self.fuse_response(response)
         y = response + x
+        agreement = self.contrastive_loss(response_c, response_h, response_w)
 
-        return y
+        return y, agreement
 
 class MultiViewNonLocalBlock3D(MultiViewNonLocalBlockBase):
-    def __init__(self, in_channels, inter_channels=None, sub_sample=True, bn_layer=True):
+    def __init__(self, in_channels, inter_channels=None, sub_sample=True, bn_layer=True, temperature=0.5, use_cosine_similarity=True):
         super().__init__(4, in_channels, inter_channels=inter_channels, dimension=3, sub_sample=sub_sample, bn_layer=bn_layer)
         self.fuse_response = nn.Conv2d(4 * in_channels[0], in_channels[0], 3, stride = 1, padding = 1)
-
+        self.contrastive_loss = MultiViewNonLocalFeatureContrastiveLoss(4, in_channels[0], temperature, use_cosine_similarity)
     def forward(self, x):
         B, C, T, H, W = x.shape
         x_c = x
@@ -202,8 +205,9 @@ class MultiViewNonLocalBlock3D(MultiViewNonLocalBlockBase):
         response = torch.cat([ response_c, response_t, response_h, response_w ], dim = 1)
         response = self.fuse_response(response)
         y = response + x
+        agreement = self.contrastive_loss(response_c, response_t, response_h, response_w)
 
-        return y
+        return y, agreement
 
 if __name__ == '__main__':
     import torch

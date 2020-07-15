@@ -365,3 +365,22 @@ class FullModel(nn.Module):
     loss = self.loss(outputs, labels)
     # here convert to scalar to 1-d tensor for reduce operation
     return torch.unsqueeze(loss, 0), outputs
+
+class ContrastiveFullModel(nn.Module):
+  """
+  Distribute the loss on multi-gpu to reduce 
+  the memory cost in the main gpu.
+  You can check the following discussion.
+  https://discuss.pytorch.org/t/dataparallel-imbalanced-memory-usage/22551/21
+  """
+  def __init__(self, model, loss):
+    super(ContrastiveFullModel, self).__init__()
+    self.model = model
+    self.loss = loss
+
+  def forward(self, inputs, labels):
+    outputs, multiview_contrastive = self.model(inputs)
+    loss = self.loss(outputs, labels)
+
+    # here convert to scalar to 1-d tensor for reduce operation
+    return torch.unsqueeze(loss, dim = 0), torch.unsqueeze(multiview_contrastive, dim = 0), outputs

@@ -11,7 +11,7 @@ import torch._utils
 import torch.nn.functional as F
 
 from ..Component.sync_batchnorm.batchnorm import SynchronizedBatchNorm2d
-from ..Component.non_local.dotproduct import NonLocalBlock2D, MultiViewNonLocalBlock2D
+from ..Component.contrastive_non_local.dotproduct import MultiViewNonLocalBlock2D
 
 BatchNorm2d = SynchronizedBatchNorm2d
 BN_MOMENTUM = 0.01
@@ -249,11 +249,11 @@ blocks_dict = {
 }
 
 
-class MultiIHR(nn.Module):
+class ContrastiveMultiIHR(nn.Module):
 
     def __init__(self, config):
-        extra = config.MODEL.EXTRA
         super().__init__()
+        extra = config.MODEL.EXTRA
 
         # stem net
         self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=2, padding=1,
@@ -316,7 +316,9 @@ class MultiIHR(nn.Module):
             MultiViewNonLocalBlock2D(
                 in_channels = [ last_inp_channels // 4, config.TRAIN.TRAIN_SIZE[1] // 4,  config.TRAIN.TRAIN_SIZE[0] // 4],
                 sub_sample=True,
-                bn_layer=True
+                bn_layer=True,
+                temperature=config.MODEL.CONTRASTIVE.TEMPERATURE,
+                use_cosine_similarity=config.MODEL.CONTRASTIVE.USE_COSINE_SIMILARITY
             )
         )
 
@@ -460,12 +462,13 @@ class MultiIHR(nn.Module):
 
         x = torch.cat([x[0], x1, x2, x3], 1)
 
-        
+        non_local_feature, multiview_contrastive = self.non_local_feature(x)
+        x = non_local_feature
 
         x = self.last_layer(x)
 
         x = F.interpolate(x, size=(ori_h, ori_w), mode='bilinear', align_corners=True)
-        return x
+        return x, multiview_contrastive
 
     def init_weights(self, pretrained='',):
         pprint('=> init weights from normal distribution')

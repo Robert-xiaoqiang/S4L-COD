@@ -43,11 +43,7 @@ class SupervisedTrainer:
         self.main_device = torch.device(self.wrapped_device if self.wrapped_device == 'cpu' else 'cuda:' + str(self.wrapped_device[0]))
 
         self.vanilla_model = self.model      
-        self.model = FullModel(self.model, self.criterion)
-        # self.model = nn.SyncBatchNorm.convert_sync_batchnorm(self.model)
-        self.model.to(self.main_device)
-        if type(self.wrapped_device) == list:
-            self.model = nn.DataParallel(self.model, device_ids = self.wrapped_device)
+        self.wrap_model()
 
         loggerpather = LoggerPather(self.config)
         self.logger = loggerpather.get_logger()
@@ -65,6 +61,13 @@ class SupervisedTrainer:
             'S': 0.0,
             # 'MAXF': 0.0,
         }
+
+    def wrap_model(self):
+        self.model = FullModel(self.model, self.criterion)
+        # self.model = nn.SyncBatchNorm.convert_sync_batchnorm(self.model)
+        self.model.to(self.main_device)
+        if type(self.wrapped_device) == list:
+            self.model = nn.DataParallel(self.model, device_ids = self.wrapped_device)        
 
     def build_criterion(self):
         criterion = nn.BCELoss(reduction=self.config.TRAIN.REDUCTION)
