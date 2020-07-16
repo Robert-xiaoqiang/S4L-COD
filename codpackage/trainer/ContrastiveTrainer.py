@@ -14,7 +14,8 @@ import os
 import copy
 from collections import OrderedDict
 
-from ..helper.TrainHelper import ContrastiveFullModel
+from ..helper.TrainHelper import AverageMeter, LoggerPather, DeviceWrapper, ContrastiveFullModel
+from ..helper.TestHelper import Evaluator
 from .SupervisedTrainer import SupervisedTrainer
 
 class ContrastiveTrainer(SupervisedTrainer):

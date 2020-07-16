@@ -42,10 +42,13 @@ class NTXentLoss(nn.Module):
         return v
 
     def forward(self, zis, zjs):
-        self.batch_size = zis.shape[0]
+        self.batch_size = zis.shape[0] if len(zis.shape) > 1 else 1
         self.mask_samples_from_same_repr = self._get_correlated_mask().type(torch.bool)
 
-        representations = torch.cat([zjs, zis], dim=0)
+        if len(zis.shape) > 1:
+            representations = torch.cat([zjs, zis], dim=0)
+        else:
+            representations = torch.cat([zjs.unsqueeze(dim = 0), zis.unsqueeze(dim = 0)], dim = 0)
 
         similarity_matrix = self.similarity_function(representations, representations)
 
