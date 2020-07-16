@@ -9,7 +9,7 @@ class NTXentLoss(nn.Module):
         super().__init__()
         self.temperature = temperature
         self.similarity_function = self._get_similarity_function(use_cosine_similarity)
-        self.criterion = torch.nn.CrossEntropyLoss(reduction='mean')
+        self.criterion = nn.CrossEntropyLoss(reduction='mean')
 
     def _get_similarity_function(self, use_cosine_similarity):
         if use_cosine_similarity:
@@ -67,12 +67,16 @@ class NTXentLoss(nn.Module):
 
         return loss.squeeze()
 
-
 class Projection(nn.Module):
     def __init__(self, in_channels):
         super().__init__()
         self.first = nn.Sequential(
-            nn.Conv2d(in_channels, in_channels, 3, stride = 1, padding = 1),
+            nn.Conv2d(in_channels, 256, 3, stride = 1, padding = 1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(inplace = True),
+            nn.Conv2d(256, 512, 3, stride = 1, padding = 1),
+            nn.BatchNorm2d(512),
+            nn.ReLU(inplace = True),
             nn.AdaptiveAvgPool2d((1, 1))
         )
 
@@ -93,8 +97,9 @@ class MultiViewNonLocalFeatureContrastiveLoss(nn.Module):
         ])
         self.linears = nn.ModuleList([
             nn.Sequential(
-                nn.Linear(self.in_channels, self.in_channels),
-                nn.Linear(self.in_channels, 256)
+                nn.Linear(512, 512),
+                nn.ReLU(inplace = True),
+                nn.Linear(512, 1024)
             )
             for _ in range(self.n_views)
         ])
@@ -105,6 +110,8 @@ class MultiViewNonLocalFeatureContrastiveLoss(nn.Module):
         # n view -> (2, n) similarities -> (2, n) positive pair loss
         losses = [ ]
         embeddings = [ self.linears[i](self.projections[i](args[i])) for i in range(self.n_views) ]
+        # embeddings = [ F.normalize(e, dim = 1) for e in embeddings ]
+
         for i in range(self.n_views):
             for j in range(i + 1, self.n_views):
                 loss = self.pair_loss(embeddings[i], embeddings[j])

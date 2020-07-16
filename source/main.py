@@ -39,7 +39,7 @@ def main():
     # get class
     Trainer = trainer.get_trainer(config)
     t = Trainer(model, train_dataloader, val_dataloader, test_dataloaders, config)
-    t.main()
+    t.train()
 
 if __name__ == '__main__':
     main()
