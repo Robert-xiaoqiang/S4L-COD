@@ -79,9 +79,34 @@ class ContrastiveTrainer(SupervisedTrainer):
         tr_tb_out_1 = make_grid(output[:8], nrow=8, padding=5)
         self.writer.add_image('train/preds', tr_tb_out_1, iteration)
 
-
     def summary_loss(self, loss, supervised_loss, contrastive_loss, epoch, iteration):
         self.logger.info('[epoch {}/{} - iteration {}/{}]: loss(cur): {:.4f} = [{:.4f}+{:.4f}], loss(avg): {:.4f}, lr: {:.8f}'\
                 .format(epoch, self.num_epochs, iteration, self.num_iterations, \
                 loss.item(), supervised_loss.item(), contrastive_loss.item(), self.loss_avg_meter.average(), \
                 self.optimizer.param_groups[0]['lr']))
+
+    def validate(self):
+        self.model.eval()
+        val_loss = AverageMeter()
+
+        preds = [ ]
+        masks = [ ]
+        tqdm_iter = tqdm(enumerate(self.val_dataloader), total=len(self.val_dataloader), leave=False)
+        for batch_id, batch_data in tqdm_iter:
+            tqdm_iter.set_description(f'Infering: te=>{batch_id + 1}')
+            with torch.no_grad():
+                batch_rgb, batch_label, batch_mask_path, batch_key, \
+                = self.build_data(batch_data)
+                losses, contrastives, output = self.model(batch_rgb, batch_label)
+            
+            val_loss.update(losses.mean().item())
+            output_cpu = output.cpu().detach()
+            for pred, mask_path in zip(output_cpu, batch_mask_path):
+                mask = copy.deepcopy(Image.open(mask_path).convert('L'))
+                pred = self.to_pil(pred).resize(mask.size)
+                preds.append(pred)
+                masks.append(mask)
+        self.logger.info('Start evaluation on validating dataset')
+        results = Evaluator.fast_evaluate(preds, masks)
+        self.logger.info('Finish evaluation on validating dataset')
+        return val_loss.average(), results
