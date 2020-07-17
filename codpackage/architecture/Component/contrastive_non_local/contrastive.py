@@ -82,7 +82,6 @@ class Projection(nn.Module):
 
     def forward(self, x):
         point_x = self.first(x)
-
         return point_x.squeeze()
 
 class MultiViewNonLocalFeatureContrastiveLoss(nn.Module):
@@ -116,6 +115,6 @@ class MultiViewNonLocalFeatureContrastiveLoss(nn.Module):
             for j in range(i + 1, self.n_views):
                 loss = self.pair_loss(embeddings[i], embeddings[j])
                 losses.append(loss.unsqueeze(dim = 0))
-        total_loss = torch.cat(losses, dim = 0).sum()
+        total_loss = torch.cat(losses, dim = 0).mean()
 
         return total_loss
