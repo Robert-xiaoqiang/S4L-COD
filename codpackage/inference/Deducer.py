@@ -115,7 +115,7 @@ class Deducer:
                     = self.build_data(batch_data)
                     output = self.model(batch_rgb)
 
-                output_cpu = output.cpu().detach()
+                output_cpu = output[0].cpu().detach()
                 for pred, mask_path, image_main_name in zip(output_cpu, batch_mask_path, batch_key):
                     mask = copy.deepcopy(Image.open(mask_path).convert('L'))
                     
@@ -156,7 +156,7 @@ class Deducer:
                     = self.build_data(batch_data)
                     output = self.model(batch_rgb)
 
-                output_cpu = output.cpu().detach()
+                output_cpu = output[0].cpu().detach()
                 for pred, mask_path, image_main_name in zip(output_cpu, batch_mask_path, batch_key):
                     mask = copy.deepcopy(Image.open(mask_path).convert('L'))
                     

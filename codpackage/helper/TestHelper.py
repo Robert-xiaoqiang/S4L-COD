@@ -398,5 +398,9 @@ class FullModelForTest(nn.Module):
 
     def forward(self, inputs):
         outputs = self.model(inputs)
-        # will be concatenated along batch axis
-        return outputs
+        # wrapped as tuple for the convenience of inference
+        if isinstance(outputs, (list, tuple)):
+            ret = outputs
+        else:
+            ret = (outputs,)
+        return ret

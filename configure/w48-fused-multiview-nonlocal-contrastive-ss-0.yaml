@@ -1,5 +1,5 @@
-NAME: 'w48-fused-multiview-nonlocal-contrastive-0'
-DEVICE: 'cuda:0,1'
+NAME: 'w48-fused-multiview-nonlocal-contrastive-ss-0'
+DEVICE: 'cuda:0,1,2,3'
 SEED: 32767
 SUMMARY_DIR: '/home/xqwang/projects/camouflaged/dev/summary'
 CUDNN:

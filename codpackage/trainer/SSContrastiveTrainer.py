@@ -16,38 +16,14 @@ from collections import OrderedDict
 
 from ..helper.TrainHelper import AverageMeter, LoggerPather, DeviceWrapper, ContrastiveFullModel
 from ..helper.TestHelper import Evaluator
-from .SupervisedTrainer import ContrastiveTrainer
+from .ContrastiveTrainer import ContrastiveTrainer
 
 class SSContrastiveTrainer(ContrastiveTrainer):
     def __init__(self, model, train_dataloader, val_dataloader, test_dataloaders, config):
         super().__init__(model, train_dataloader, val_dataloader, test_dataloaders, config)
 
-    def wrap_model(self):
-        self.model = self.model
-        # self.model = nn.SyncBatchNorm.convert_sync_batchnorm(self.model)
-        self.model.to(self.main_device)
-        if type(self.wrapped_device) == list:
-            self.model = nn.DataParallel(self.model, device_ids = self.wrapped_device)        
-
-
-    def train_epoch(self, epoch):
-        # set evaluation mode in self.on_epoch_end()
-        self.model.train()
-        for batch_index, batch_data in enumerate(self.train_dataloader):
-            batch_rgb, batch_label\
-            = self.build_data(batch_data)
-
-            output, contrastives = self.model(batch_rgb, batch_label)
-            # here loss is gathered from each rank, mean/sum it to scalar
-            if self.config.TRAIN.REDUCTION == 'mean':
-                contrastive = contrastives.mean()
-            else:
-                contrastive = contrastives.sum()
-            contrastive_loss = contrastive
-            self.on_batch_end(output, batch_label, contrastive_loss, epoch, batch_index)
-
     def on_batch_end(self, output, batch_label, 
-                     contrastive_loss,
+                     supervised_loss, contrastive_loss,
                      epoch, batch_index):
         
         loss = contrastive_loss
@@ -95,9 +71,8 @@ class SSContrastiveTrainer(ContrastiveTrainer):
             with torch.no_grad():
                 batch_rgb, batch_label, batch_mask_path, batch_key, \
                 = self.build_data(batch_data)
-                output, contrastives = self.model(batch_rgb, batch_label)
+                losses, contrastives, output = self.model(batch_rgb, batch_label)
             
-            # here we refer contrastives as validating losses
             val_loss.update(contrastives.mean().item())
             output_cpu = output.cpu().detach()
             for pred, mask_path in zip(output_cpu, batch_mask_path):
