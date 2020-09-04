@@ -17,3 +17,8 @@
 
 ## modify your own configure
 
+## technical stuff
+- HR-Net baseline for resolution presevering mask output
+- Multiview non-local filter for enhanced high level feature
+- Online contrastive representation for robust learning
+- Fully unsupervised approach to simulating camouflaged object in wild context
